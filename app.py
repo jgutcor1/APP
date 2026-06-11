@@ -1,6 +1,7 @@
 import os
 import re
 import zipfile
+import base64
 import pandas as pd
 from datetime import datetime
 from io import BytesIO
@@ -19,11 +20,10 @@ from reportlab.lib.enums import TA_JUSTIFY, TA_CENTER, TA_LEFT, TA_RIGHT
 MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", 
          "agosto", "septiembre", "octubre", "noviembre", "diciembre"]
 
-# Enlaces directos utilizando la mediateca y almacenamiento seguro
+# URL del logotipo del Gobierno de Canarias para el documento PDF
 URL_LOGO_CANARIAS = "https://www3.gobiernodecanarias.org/medusa/mediateca/perfeccionamiento/wp-content/uploads/sites/5/2026/06/logo-consejeria-educacion.png"
-URL_LOGO_APP = "https://www3.gobiernodecanarias.org/medusa/mediateca/perfeccionamiento/wp-content/uploads/sites/5/2026/06/logo-servicio-de-perfeccionamiento-135x135.png"
 
-# Ocultar menús molestos de Streamlit y compactar área de trabajo
+# Ocultar menús nativos de Streamlit y ajustar márgenes verticales mínimos para Moodle
 st.markdown("""
     <style>
         #MainMenu {visibility: hidden;}
@@ -32,20 +32,31 @@ st.markdown("""
         .block-container {padding-top: 0.1rem !important; padding-bottom: 0.1rem !important; margin-left: 0 !important; text-align: left !important;}
         div[data-testid="stVerticalBlock"] {gap: 0.3rem !important;}
         
-        /* Ajustar componentes del formulario horizontal */
+        /* Compactar el File Uploader y alinearlo de forma horizontal con el botón */
         [data-testid="stFileUploader"] {text-align: left !important; margin-bottom: 0px !important;}
         .stButton > button {width: 100% !important; margin-top: 0px !important;}
     </style>
 """, unsafe_allow_html=True)
 
-# Cabecera maquetada con tabla HTML para alinear de forma fluida el logo circular y el título
+# LÓGICA DE DETECCIÓN DEL LOGO LOCAL EN GITHUB
+logo_path = "logo-app.png"
+if os.path.exists(logo_path):
+    # Si la imagen existe en el repositorio, la codificamos en Base64 para inyección directa
+    with open(logo_path, "rb") as image_file:
+        encoded_string = base64.b64encode(image_file.read()).decode()
+    img_src = f"data:image/png;base64,{encoded_string}"
+else:
+    # Imagen de respaldo online por si el archivo no se encuentra en GitHub temporalmente
+    img_src = "https://cdn-icons-png.flaticon.com/512/2641/2641333.png"
+
+# CABECERA WEB COMPACTA: Estructurada en HTML fluido e inmune a cortes
 st.markdown(
     f"""
     <div style="font-family:'Segoe UI', Arial, sans-serif; margin-bottom: 8px; text-align: left;">
         <table style="border:none; border-collapse:collapse; width:100%; background:transparent; margin:0;">
             <tr style="border:none;">
                 <td style="width:48px; vertical-align:middle; padding:0; border:none; text-align:left;">
-                    <img src="{URL_LOGO_APP}" width="42" style="display:inline-block; vertical-align:middle; border-radius:50%;" onerror="this.onerror=null; this.src='https://cdn-icons-png.flaticon.com/512/2641/2641333.png';"/>
+                    <img src="{img_src}" width="42" style="display:inline-block; vertical-align:middle; border-radius:50%;"/>
                 </td>
                 <td style="vertical-align:middle; padding-left:10px; border:none; text-align:left;">
                     <h2 style="margin:0; color:#0A3A60; font-size:18px; font-weight:600; line-height:1.2; display:inline-block; vertical-align:middle;">
@@ -198,7 +209,7 @@ def generar_memoria_oficial(datos_ficha, df_coord, df_part, bytes_plantilla):
     buffer.seek(0)
     return buffer.getvalue()
 
-# Fila horizontal del cargador y botón ejecutivo
+# Estructura del Formulario Horizontal Principal
 col_f1, col_f2 = st.columns([2, 1])
 
 with col_f1:
@@ -210,22 +221,22 @@ with col_f2:
 if archivo_excel and ejecutar:
     with st.spinner("Procesando..."):
         try:
-            # Comprobación de seguridad de la plantilla oficial
+            # Control de seguridad de la plantilla oficial de Moodle/Word
             if not os.path.exists("plantilla_memoria.docx"):
-                st.error("Error: Asegúrate de subir el archivo 'plantilla_memoria.docx' a tu repositorio de GitHub junto a app.py.")
+                st.error("Error crítico: No se encuentra 'plantilla_memoria.docx' en el repositorio de GitHub.")
                 st.stop()
                 
             with open("plantilla_memoria.docx", "rb") as f:
                 plantilla_bytes = f.read()
             
-            # Descarga segura del logotipo para el documento PDF final
+            # Intento de descarga controlada del logo institucional para el PDF
             bytes_logo_pdf = None
             try:
                 cabeceras = {'User-Agent': 'Mozilla/5.0'}
                 req_logo = urllib.request.Request(URL_LOGO_CANARIAS, headers=cabeceras)
                 bytes_logo_pdf = urllib.request.urlopen(req_logo, timeout=5).read()
             except:
-                pass # Si el servidor de Medusa falla, el PDF continuará usando el membrete de texto seguro
+                pass # Si el servidor externo falla o da error de red, el PDF continuará usando texto seguro
             
             df_ficha = pd.read_excel(archivo_excel, sheet_name="Ficha del Proyecto", header=None)
             df_coord = pd.read_excel(archivo_excel, sheet_name="Coordinador")
@@ -250,6 +261,7 @@ if archivo_excel and ejecutar:
                 zip_file.writestr(f"Memoria_{exp_limpio}.docx", docx_bytes)
             zip_buffer.seek(0)
             
+            # Bloque de salida compactado lado a lado al procesar con éxito
             col_res1, col_res2 = st.columns([2, 1])
             with col_res1:
                 st.success("✨ ¡Paquete generado!")
@@ -262,8 +274,9 @@ if archivo_excel and ejecutar:
                 )
                 
         except Exception as e:
-            st.error(f"Error crítico en el procesado: {str(e)}")
+            st.error(f"Error durante la lectura del archivo: {str(e)}")
 
+# Información legal y de compilación
 st.markdown(
     """
     <div style="margin-top: 10px; font-family: sans-serif; font-size: 10px; color: #A0AEC0; text-align: left; line-height: 1.2;">
