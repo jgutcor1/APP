@@ -26,43 +26,49 @@ URL_LOGO_APP = "https://www3.gobiernodecanarias.org/medusa/mediateca/perfecciona
 # 1. Configuración de página con márgenes mínimos
 st.set_page_config(page_title="Consola de Certificación", page_icon="📝", layout="centered")
 
-# CSS para exprimir el espacio vertical en Moodle
+# CSS para exprimir el espacio vertical en Moodle y limpiar contenedores
 st.markdown("""
     <style>
         #MainMenu {visibility: hidden;}
         footer {visibility: hidden;}
         header {visibility: hidden;}
-        .block-container {padding-top: 0.5rem !important; padding-bottom: 0.5rem !important; margin-left: 0 !important; text-align: left !important;}
-        div[data-testid="stVerticalBlock"] {gap: 0.5rem !important;}
+        .block-container {padding-top: 0.2rem !important; padding-bottom: 0.2rem !important; margin-left: 0 !important; text-align: left !important;}
+        div[data-testid="stVerticalBlock"] {gap: 0.4rem !important;}
         
-        /* Ajuste de márgenes del cargador para que no ocupe espacio extra */
+        /* Ajuste de márgenes del cargador para que acople perfecto con el botón */
         [data-testid="stFileUploader"] {text-align: left !important; margin-bottom: 0px !important;}
-        .stButton > button {width: 100% !important;}
+        .stButton > button {width: 100% !important; margin-top: 0px !important;}
     </style>
 """, unsafe_allow_html=True)
 
-# 2. BANNER COMPACTO: Logo a la izquierda y Textos a la derecha en una fila
-col_logo, col_titulo = st.columns([1, 6])
+# 2. CABECERA UNIFICADA: Tabla HTML robusta para garantizar Logo a la izquierda y Texto a la derecha
+st.markdown(
+    f"""
+    <div style="font-family:'Segoe UI', Arial, sans-serif; margin-bottom: 12px; text-align: left;">
+        <table style="border:none; border-collapse:collapse; width:100%; background:transparent; margin:0;">
+            <tr style="border:none;">
+                <td style="width:55px; vertical-align:middle; padding:0; border:none; text-align:left;">
+                    <img src="{URL_LOGO_APP}" width="50" style="display:inline-block; vertical-align:middle; border-radius:4px;"/>
+                </td>
+                <td style="vertical-align:middle; padding-left:12px; border:none; text-align:left;">
+                    <h2 style="margin:0; color:#0A3A60; font-size:19px; font-weight:600; line-height:1.2; display:inline-block; vertical-align:middle;">
+                        Consola de Certificación Oficial
+                    </h2>
+                    <span style="margin-left:8px; color:#718096; font-size:12px; display:inline-block; vertical-align:middle;">
+                        &middot; Área de Formación y Perfeccionamiento
+                    </span>
+                </td>
+            </tr>
+        </table>
+    </div>
+    <p style='font-family:sans-serif; font-size:12px; color:#4A5568; margin: 0 0 12px 0; text-align:left;'>
+        La plantilla Word oficial está integrada. Suba el archivo Excel para confeccionar el paquete.
+    </p>
+    """, 
+    unsafe_allow_html=True
+)
 
-with col_logo:
-    st.image(URL_LOGO_APP, width=65)
-
-with col_titulo:
-    st.markdown(
-        """
-        <div style="font-family:'Segoe UI', Arial, sans-serif; padding-top: 2px;">
-            <h2 style="margin:0; color:#0A3A60; font-size:20px; font-weight:600; line-height:1.1;">Consola de Certificación Oficial</h2>
-            <p style="margin:2px 0 0 0; color:#4A5568; font-size:12.5px;">
-                Área de Formación y Perfeccionamiento &middot; Gestión de Actas y Memorias
-            </p>
-        </div>
-        """, 
-        unsafe_allow_html=True
-    )
-
-st.markdown("<p style='font-size:12.5px; color:#718096; margin: 0 0 10px 0;'>La plantilla Word está integrada. Suba el Excel para confeccionar el paquete oficial.</p>", unsafe_allow_html=True)
-
-# Funciones de procesamiento de archivos de fondo
+# Funciones de procesamiento
 def limpiar_nombre_archivo(texto):
     if not texto: return ""
     return re.sub(r'[\\/*?:"<>|]', '_', str(texto).replace('\n', '').replace('\r', '').strip())
@@ -192,17 +198,16 @@ def generar_memoria_oficial(datos_ficha, df_coord, df_part, bytes_plantilla):
     buffer.seek(0)
     return buffer.getvalue()
 
-# 3. FILA DE CONTROL HORIZONTAL: Cargador y botón de ejecución lado a lado
+# 3. FILA DE CONTROL: Selector Excel (Izquierda) y Botón de Confeccionar (Derecha)
 col_f1, col_f2 = st.columns([2, 1])
 
 with col_f1:
     archivo_excel = st.file_uploader("Excel del Proyecto", type=["xlsx", "xls"], label_visibility="collapsed")
 
 with col_f2:
-    # El botón solo se activa si hay archivo subido
     ejecutar = st.button("⚡ Confeccionar", type="primary", disabled=(archivo_excel is None))
 
-# 4. FILA DE RESULTADO: Aparece justo debajo al terminar el proceso
+# 4. FILA DE RESULTADO HORIZONTAL (Aparece al procesar)
 if archivo_excel and ejecutar:
     with st.spinner("Procesando..."):
         try:
@@ -240,8 +245,8 @@ if archivo_excel and ejecutar:
                 zip_file.writestr(f"Memoria_{exp_limpio}.docx", docx_bytes)
             zip_buffer.seek(0)
             
-            # Bloque de descarga en horizontal ultra-compacto
-            col_res1, col_res2 = st.columns([1, 1])
+            # Mensaje de éxito y botón de descarga perfectamente alineados lado a lado
+            col_res1, col_res2 = st.columns([2, 1])
             with col_res1:
                 st.success("✨ ¡Paquete generado!")
             with col_res2:
@@ -255,12 +260,12 @@ if archivo_excel and ejecutar:
         except Exception as e:
             st.error(f"Error: {str(e)}")
 
-# Pie de privacidad en tamaño mínimo
+# Pie de privacidad fijo y discreto
 st.markdown(
     """
-    <div style="margin-top: 15px; font-family: sans-serif; font-size: 10px; color: #A0AEC0; text-align: left; line-height: 1.2;">
-        🔒 <b>RGPD:</b> Datos procesados estrictamente en la memoria RAM volátil del servidor y destruidos al finalizar de forma inmediata.
-        <br/><span style="font-weight: bold; font-size: 8.5px; letter-spacing: 0.5px;">DEVELOPER 1.0</span>
+    <div style="margin-top: 12px; font-family: sans-serif; font-size: 10px; color: #A0AEC0; text-align: left; line-height: 1.2;">
+        🔒 <b>RGPD:</b> Datos procesados en memoria RAM volátil y destruidos al finalizar de forma inmediata.
+        <br/><span style="font-weight: bold; font-size: 8px; letter-spacing: 0.5px;">DEVELOPER 1.0</span>
     </div>
     """, 
     unsafe_allow_html=True
