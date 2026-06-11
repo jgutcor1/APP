@@ -62,13 +62,15 @@ st.markdown(
                     <h2 style="margin:0; color:#0A3A60; font-size:18px; font-weight:600; line-height:1.2; display:inline-block; vertical-align:middle;">
                         Área de Formación y Perfeccionamiento
                     </h2>
-                   
+                    <span style="margin-left:6px; color:#718096; font-size:11.5px; display:inline-block; vertical-align:middle;">
+                        &middot; 
+                    </span>
                 </td>
             </tr>
         </table>
     </div>
     <p style='font-family:sans-serif; font-size:11.5px; color:#4A5568; margin: 0 0 10px 0; text-align:left;'>
-        Suba el archivo Excel para confeccionar el paquete.
+        La plantilla Word oficial está integrada. Suba el archivo Excel para confeccionar el paquete.
     </p>
     """, 
     unsafe_allow_html=True
