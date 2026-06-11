@@ -70,7 +70,7 @@ st.markdown(
         </table>
     </div>
     <p style='font-family:sans-serif; font-size:11.5px; color:#4A5568; margin: 0 0 10px 0; text-align:left;'>
-        La plantilla Word oficial está integrada. Suba el archivo Excel para confeccionar el paquete.
+        Suba el archivo Excel para confeccionar el paquete.
     </p>
     """, 
     unsafe_allow_html=True
