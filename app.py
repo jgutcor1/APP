@@ -19,67 +19,50 @@ from reportlab.lib.enums import TA_JUSTIFY, TA_CENTER, TA_LEFT, TA_RIGHT
 MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", 
          "agosto", "septiembre", "octubre", "noviembre", "diciembre"]
 
-# Recursos Gráficos oficiales en alta resolución
+# Recursos Gráficos oficiales
 URL_LOGO_CANARIAS = "https://www3.gobiernodecanarias.org/medusa/mediateca/perfeccionamiento/wp-content/uploads/sites/5/2026/06/logo-consejeria-educacion.png"
 URL_LOGO_APP = "https://www3.gobiernodecanarias.org/medusa/mediateca/perfeccionamiento/wp-content/uploads/sites/5/2026/06/logo-servicio-de-perfeccionamiento-135x135.png"
 
-# 1. Configuración de página limpia
+# 1. Configuración de página con márgenes mínimos
 st.set_page_config(page_title="Consola de Certificación", page_icon="📝", layout="centered")
 
-# CSS Avanzado para forzar la alineación a la izquierda en Moodle/WordPress
+# CSS para exprimir el espacio vertical en Moodle
 st.markdown("""
     <style>
         #MainMenu {visibility: hidden;}
         footer {visibility: hidden;}
         header {visibility: hidden;}
-        .block-container {padding-top: 1rem; padding-bottom: 1rem; margin-left: 0 !important; text-align: left !important;}
+        .block-container {padding-top: 0.5rem !important; padding-bottom: 0.5rem !important; margin-left: 0 !important; text-align: left !important;}
+        div[data-testid="stVerticalBlock"] {gap: 0.5rem !important;}
         
-        /* Forzar a que el componente de subida de archivos se alinee a la izquierda y no ocupe el 100% si no es necesario */
-        [data-testid="stFileUploader"] {
-            text-align: left !important;
-            max-width: 500px;
-        }
-        
-        /* Alinear botones y mensajes informativos a la izquierda */
-        .stButton > button {
-            display: block !important;
-            margin-right: auto !important;
-            margin-left: 0 !important;
-            max-width: 400px;
-        }
-        div.stAlert {
-            max-width: 500px;
-            text-align: left !important;
-            margin-left: 0 !important;
-        }
+        /* Ajuste de márgenes del cargador para que no ocupe espacio extra */
+        [data-testid="stFileUploader"] {text-align: left !important; margin-bottom: 0px !important;}
+        .stButton > button {width: 100% !important;}
     </style>
 """, unsafe_allow_html=True)
 
-# 2. Banner Institucional con LOGO A LA IZQUIERDA (Usando una tabla HTML limpia para WeasyPrint/Streamlit iframe)
-st.markdown(
-    f"""
-    <div style="background-color:#0A3A60; padding:20px; border-radius:4px; margin-bottom:20px; font-family:'Segoe UI', Arial, sans-serif;">
-        <table style="border:none; border-collapse:collapse; width:100%; background:transparent;">
-            <tr>
-                <td style="width:70px; vertical-align:middle; padding:0; border:none;">
-                    <img src="{URL_LOGO_APP}" width="60" style="border-radius:4px; display:block;"/>
-                </td>
-                <td style="vertical-align:middle; padding-left:15px; border:none; text-align:left;">
-                    <h2 style="margin:0; color:white; font-size:21px; font-weight:500; line-height:1.2;">📝 Consola de Certificación Oficial</h2>
-                    <p style="margin:4px 0 0 0; color:#CBD5E0; font-size:13px; opacity:0.9;">
-                        Área de Formación y Perfeccionamiento &middot; Gestión Automatizada de Actas y Memorias
-                    </p>
-                </td>
-            </tr>
-        </table>
-    </div>
-    <p style="font-family:'Segoe UI', Arial, sans-serif; color:#4A5568; font-size:13.5px; margin-bottom:25px; text-align:left;">
-        La plantilla oficial de Word ya se encuentra integrada. Seleccione únicamente el archivo Excel del proyecto para iniciar la confección automatizada.
-    </p>
-    """, 
-    unsafe_allow_html=True
-)
+# 2. BANNER COMPACTO: Logo a la izquierda y Textos a la derecha en una fila
+col_logo, col_titulo = st.columns([1, 6])
 
+with col_logo:
+    st.image(URL_LOGO_APP, width=65)
+
+with col_titulo:
+    st.markdown(
+        """
+        <div style="font-family:'Segoe UI', Arial, sans-serif; padding-top: 2px;">
+            <h2 style="margin:0; color:#0A3A60; font-size:20px; font-weight:600; line-height:1.1;">Consola de Certificación Oficial</h2>
+            <p style="margin:2px 0 0 0; color:#4A5568; font-size:12.5px;">
+                Área de Formación y Perfeccionamiento &middot; Gestión de Actas y Memorias
+            </p>
+        </div>
+        """, 
+        unsafe_allow_html=True
+    )
+
+st.markdown("<p style='font-size:12.5px; color:#718096; margin: 0 0 10px 0;'>La plantilla Word está integrada. Suba el Excel para confeccionar el paquete oficial.</p>", unsafe_allow_html=True)
+
+# Funciones de procesamiento de archivos de fondo
 def limpiar_nombre_archivo(texto):
     if not texto: return ""
     return re.sub(r'[\\/*?:"<>|]', '_', str(texto).replace('\n', '').replace('\r', '').strip())
@@ -89,25 +72,21 @@ def dibujar_encabezado_pdf(canvas, doc, bytes_logo, texto_global):
     styles = getSampleStyleSheet()
     estilo_perf = ParagraphStyle('PerfDer', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=10, alignment=TA_RIGHT)
     estilo_acta = ParagraphStyle('ActaDer', parent=styles['Normal'], fontName='Helvetica', fontSize=14, alignment=TA_CENTER)
-    
     tabla_acta_caja = Table([[Paragraph("<b>ACTA DE CERTIFICACIÓN</b>", estilo_acta)]], colWidths=[240], rowHeights=[32])
     tabla_acta_caja.setStyle(TableStyle([
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'), ('BOX', (0,0), (-1,-1), 0.75, colors.grey),
         ('BOTTOMPADDING', (0,0), (-1,-1), 0), ('TOPPADDING', (0,0), (-1,-1), 0),
     ]))
-    
     contenido_derecha = [
         Paragraph("<b>PERF-06</b>", estilo_perf),
         Table([[tabla_acta_caja]], colWidths=[240], style=[('ALIGN', (0,0), (-1,-1), 'RIGHT'), ('BOTTOMPADDING', (0,0), (-1,-1), 0), ('TOPPADDING', (0,0), (-1,-1), 2)])
     ]
-    
     if bytes_logo:
         from reportlab.lib.utils import ImageReader
         canvas.drawImage(ImageReader(BytesIO(bytes_logo)), 42, 715, width=250, height=48, preserveAspectRatio=True, mask='auto')
         celda_izquierda = Paragraph("", styles['Normal'])
     else:
         celda_izquierda = Paragraph("GOBIERNO DE CANARIAS<br/>Consejería de Educación", ParagraphStyle('Fb', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=9))
-        
     tabla_grafica_superior = Table([[celda_izquierda, contenido_derecha]], colWidths=[264, 264])
     tabla_grafica_superior.setStyle(TableStyle([
         ('VALIGN', (0,0), (-1,-1), 'BOTTOM'), ('LEFTPADDING', (0,0), (-1,-1), 0),
@@ -115,11 +94,9 @@ def dibujar_encabezado_pdf(canvas, doc, bytes_logo, texto_global):
     ]))
     tabla_grafica_superior.wrapOn(canvas, 528, 55)
     tabla_grafica_superior.drawOn(canvas, 42, 712)
-    
     p_intro = Paragraph(texto_global, ParagraphStyle('IntroJust', parent=styles['Normal'], fontSize=9.5, leading=14.5, alignment=TA_JUSTIFY))
     p_intro.wrapOn(canvas, 528, 120)
     p_intro.drawOn(canvas, 42, 595)
-    
     canvas.setStrokeColor(colors.grey)
     canvas.setLineWidth(0.5)
     canvas.line(42, 582, 570, 582)
@@ -131,7 +108,6 @@ def generar_acta_pdf(datos_ficha, df_coord, df_part, bytes_logo):
     fecha_final_txt = f"{f_final.day} de {MESES[f_final.month - 1]} de {f_final.year}" if isinstance(f_final, datetime) else str(f_final).strip()
     f_resol = datos_ficha['fecha_resol']
     fecha_resol_txt = f_resol.strftime("%d/%m/%Y") if isinstance(f_resol, datetime) else str(f_resol).strip()
-    
     texto_global = (
         f"Siendo las 23:59 horas del día <b>{fecha_final_txt}</b>, se da por finalizada la actividad de "
         f"Perfeccionamiento del Profesorado <b>{str(datos_ficha['nombre']).strip()}</b> realizado durante el curso escolar "
@@ -144,17 +120,13 @@ def generar_acta_pdf(datos_ficha, df_coord, df_part, bytes_logo):
         f"la Dirección General de Ordenación, Innovación y Promoción Educativa del 15 de mayo de 1998 (BOC de 8 de junio) "
         f"y la Circular de 20 de mayo de 1998."
     )
-    
     doc = SimpleDocTemplate(buffer, pagesize=letter, leftMargin=42, rightMargin=42, topMargin=220, bottomMargin=42)
     story = []
     styles = getSampleStyleSheet()
-    
     estilo_cab = ParagraphStyle('TCab', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=8, alignment=TA_CENTER)
     estilo_cen = ParagraphStyle('TCen', parent=styles['Normal'], fontSize=8.5, alignment=TA_CENTER)
     estilo_izq = ParagraphStyle('TIzq', parent=styles['Normal'], fontSize=8.5, alignment=TA_LEFT)
-    
     tabla_datos = [[Paragraph("Nº", estilo_cab), Paragraph("Apellidos y Nombre", estilo_cab), Paragraph("DNI/NIF", estilo_cab), Paragraph("Rol", estilo_cab), Paragraph("Horas", estilo_cab), Paragraph("Certifica", estilo_cab)]]
-    
     cont = 1
     for df, rol in [(df_coord, "DOCENTE COORDINADOR/A"), (df_part, "DOCENTE PARTICIPANTE")]:
         for _, fila in df.iterrows():
@@ -164,14 +136,12 @@ def generar_acta_pdf(datos_ficha, df_coord, df_part, bytes_logo):
                 Paragraph(str(fila.iloc[4]), estilo_cen), Paragraph(str(fila.iloc[5]).upper(), estilo_cen)
             ])
             cont += 1
-            
     t = Table(tabla_datos, colWidths=[40, 185, 75, 133, 40, 55], repeatRows=1)
     t.setStyle(TableStyle([
         ('BACKGROUND', (0,0), (-1,0), colors.lightgrey), ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'), ('BOTTOMPADDING', (0,0), (-1,-1), 4), ('TOPPADDING', (0,0), (-1,-1), 4),
     ]))
     story.append(t)
-    
     doc.build(story, onFirstPage=lambda c, d: dibujar_encabezado_pdf(c, d, bytes_logo, texto_global),
                      onLaterPages=lambda c, d: dibujar_encabezado_pdf(c, d, bytes_logo, texto_global))
     buffer.seek(0)
@@ -180,31 +150,25 @@ def generar_acta_pdf(datos_ficha, df_coord, df_part, bytes_logo):
 def generar_memoria_oficial(datos_ficha, df_coord, df_part, bytes_plantilla):
     buffer = BytesIO()
     doc = Document(BytesIO(bytes_plantilla))
-    
     h_coord = str(datos_ficha['horas_coord']).upper().replace("HORAS", "").strip()
     h_part = str(datos_ficha['horas_partic']).upper().replace("HORAS", "").strip()
-
     MAPA_REEMPLAZOS = {
         "{nombre}": str(datos_ficha['nombre']).strip(), "{exp}": str(datos_ficha['exp']).strip(),
         "{curso_escolar}": str(datos_ficha['curso_escolar']).strip(), "{horascoordinacion}": h_coord, "{horasparticipacion}": h_part
     }
-
     for p in doc.paragraphs:
         for cl, val in MAPA_REEMPLAZOS.items():
             if cl in p.text: p.text = p.text.replace(cl, str(val))
-
     for table in doc.tables:
         for row in table.rows:
             for cell in row.cells:
                 for cl, val in MAPA_REEMPLAZOS.items():
                     if cl in cell.text: cell.text = cell.text.replace(cl, str(val))
-
     tabla_certificacion = None
     for t in doc.tables:
         if len(t.rows) > 0 and any("APELLIDOS" in cell.text.upper() or "CAUSAS" in cell.text.upper() for cell in t.rows[0].cells):
             tabla_certificacion = t
             break
-            
     if tabla_certificacion:
         cont = 1
         for df in [df_coord, df_part]:
@@ -215,91 +179,88 @@ def generar_memoria_oficial(datos_ficha, df_coord, df_part, bytes_plantilla):
                     nueva_fila.cells[1].text = f"{fila.iloc[1]}, {fila.iloc[2]}".upper()
                     nueva_fila.cells[2].text = str(fila.iloc[0]).upper()
                     nueva_fila.cells[3].text = ", ".join([str(fila.iloc[6]).strip() if pd.notna(fila.iloc[6]) else "", str(fila.iloc[7]).strip() if pd.notna(fila.iloc[7]) else ""]).strip(", ").upper()
-                    
                     for cell in nueva_fila.cells:
                         for p in cell.paragraphs:
                             for run in p.runs: run.font.size = Pt(8.5)
                     cont += 1
-                    
         if cont == 1:
             nueva_fila = tabla_certificacion.add_row()
             nueva_fila.cells[1].text = "No constan personas sin certificar"
             for p in nueva_fila.cells[1].paragraphs:
                 for run in p.runs: run.font.size = Pt(8.5)
-                
     doc.save(buffer)
     buffer.seek(0)
     return buffer.getvalue()
 
-# 3. Cargador de Archivos (Forzado a la izquierda por CSS superior)
-archivo_excel = st.file_uploader("🟢 Seleccionar Excel del Proyecto", type=["xlsx", "xls"], label_visibility="collapsed")
+# 3. FILA DE CONTROL HORIZONTAL: Cargador y botón de ejecución lado a lado
+col_f1, col_f2 = st.columns([2, 1])
 
-if archivo_excel:
-    st.info("📊 Excel cargado correctamente en la caché RAM volátil.")
-    
-    # Botón de Procesar (Alineado a la izquierda)
-    if st.button("⚡ Confeccionar documentos", type="primary"):
-        with st.spinner("Procesando en caliente..."):
-            try:
-                if not os.path.exists("plantilla_memoria.docx"):
-                    st.error("Falta el archivo 'plantilla_memoria.docx' en la raíz de GitHub.")
-                    st.stop()
-                    
-                with open("plantilla_memoria.docx", "rb") as f:
-                    plantilla_bytes = f.read()
+with col_f1:
+    archivo_excel = st.file_uploader("Excel del Proyecto", type=["xlsx", "xls"], label_visibility="collapsed")
+
+with col_f2:
+    # El botón solo se activa si hay archivo subido
+    ejecutar = st.button("⚡ Confeccionar", type="primary", disabled=(archivo_excel is None))
+
+# 4. FILA DE RESULTADO: Aparece justo debajo al terminar el proceso
+if archivo_excel and ejecutar:
+    with st.spinner("Procesando..."):
+        try:
+            if not os.path.exists("plantilla_memoria.docx"):
+                st.error("Falta el archivo 'plantilla_memoria.docx' en GitHub.")
+                st.stop()
                 
-                cabeceras = {'User-Agent': 'Mozilla/5.0'}
-                req_logo = urllib.request.Request(URL_LOGO_CANARIAS, headers=cabeceras)
-                bytes_logo_pdf = urllib.request.urlopen(req_logo, timeout=6).read()
-                
-                df_ficha = pd.read_excel(archivo_excel, sheet_name="Ficha del Proyecto", header=None)
-                df_coord = pd.read_excel(archivo_excel, sheet_name="Coordinador")
-                df_part = pd.read_excel(archivo_excel, sheet_name="Participante")
-                
-                datos_ficha = {
-                    "nombre": df_ficha.iloc[2, 2], "exp": str(df_ficha.iloc[4, 2]),
-                    "resol": str(df_ficha.iloc[4, 6]), "fecha_resol": df_ficha.iloc[5, 6],
-                    "horas_coord": df_ficha.iloc[7, 2], "horas_partic": df_ficha.iloc[8, 2],
-                    "curso_escolar": df_ficha.iloc[9, 6], "fecha_final": df_ficha.iloc[11, 2]
-                }
-                
-                pdf_bytes = generar_acta_pdf(datos_ficha, df_coord, df_part, bytes_logo_pdf)
-                docx_bytes = generar_memoria_oficial(datos_ficha, df_coord, df_part, plantilla_bytes)
-                
-                zip_buffer = BytesIO()
-                exp_limpio = limpiar_nombre_archivo(datos_ficha['exp'])
-                nom_limpio = limpiar_nombre_archivo(datos_ficha['nombre'])
-                
-                with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
-                    zip_file.writestr(f"Perf06_{exp_limpio}_{nom_limpio}.pdf", pdf_bytes)
-                    zip_file.writestr(f"Memoria_{exp_limpio}.docx", docx_bytes)
-                
-                zip_buffer.seek(0)
-                
-                # Bloque final: Mensaje de éxito y Botón de descarga pegados a la izquierda
-                st.success("✨ ¡Paquete oficial generado con éxito!")
-                
+            with open("plantilla_memoria.docx", "rb") as f:
+                plantilla_bytes = f.read()
+            
+            cabeceras = {'User-Agent': 'Mozilla/5.0'}
+            req_logo = urllib.request.Request(URL_LOGO_CANARIAS, headers=cabeceras)
+            bytes_logo_pdf = urllib.request.urlopen(req_logo, timeout=6).read()
+            
+            df_ficha = pd.read_excel(archivo_excel, sheet_name="Ficha del Proyecto", header=None)
+            df_coord = pd.read_excel(archivo_excel, sheet_name="Coordinador")
+            df_part = pd.read_excel(archivo_excel, sheet_name="Participante")
+            
+            datos_ficha = {
+                "nombre": df_ficha.iloc[2, 2], "exp": str(df_ficha.iloc[4, 2]),
+                "resol": str(df_ficha.iloc[4, 6]), "fecha_resol": df_ficha.iloc[5, 6],
+                "horas_coord": df_ficha.iloc[7, 2], "horas_partic": df_ficha.iloc[8, 2],
+                "curso_escolar": df_ficha.iloc[9, 6], "fecha_final": df_ficha.iloc[11, 2]
+            }
+            
+            pdf_bytes = generar_acta_pdf(datos_ficha, df_coord, df_part, bytes_logo_pdf)
+            docx_bytes = generar_memoria_oficial(datos_ficha, df_coord, df_part, plantilla_bytes)
+            
+            zip_buffer = BytesIO()
+            exp_limpio = limpiar_nombre_archivo(datos_ficha['exp'])
+            nom_limpio = limpiar_nombre_archivo(datos_ficha['nombre'])
+            
+            with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+                zip_file.writestr(f"Perf06_{exp_limpio}_{nom_limpio}.pdf", pdf_bytes)
+                zip_file.writestr(f"Memoria_{exp_limpio}.docx", docx_bytes)
+            zip_buffer.seek(0)
+            
+            # Bloque de descarga en horizontal ultra-compacto
+            col_res1, col_res2 = st.columns([1, 1])
+            with col_res1:
+                st.success("✨ ¡Paquete generado!")
+            with col_res2:
                 st.download_button(
-                    label="📥 Descargar Pack de Certificación Oficial (.ZIP)",
+                    label="📥 Descargar Paquete (.ZIP)",
                     data=zip_buffer.getvalue(),
                     file_name=f"Certificacion_Proyecto_{exp_limpio}.zip",
                     mime="application/zip"
                 )
                 
-            except Exception as e:
-                st.error(f"Error en procesado: {str(e)}")
+        except Exception as e:
+            st.error(f"Error: {str(e)}")
 
-# Sección Informativa de Privacidad (Alineada a la izquierda)
+# Pie de privacidad en tamaño mínimo
 st.markdown(
     """
-    <div style="background-color: #F7FAFC; border: 1px dashed #CBD5E0; padding: 12px; border-radius: 4px; margin-top: 30px; font-family: sans-serif; max-width: 500px; text-align: left;">
-        <span style="color: #4A5568; font-weight: bold; font-size: 11.5px;">🔒 Protección de Datos (RGPD):</span>
-        <p style="margin: 4px 0 0 0; color: #718096; font-size: 11px; line-height: 1.4;">
-            Los datos personales se procesan exclusivamente en memoria volátil (RAM) y se destruyen al descargar el paquete o cerrar la ventana. Ninguna información se registra de forma permanente.
-        </p>
-    </div>
-    <div style="margin-top: 15px; font-size: 9px; color: #A0AEC0; font-weight: bold; text-align: left; padding-left: 5px; letter-spacing: 1px;">
-        DEVELOPER 1.0
+    <div style="margin-top: 15px; font-family: sans-serif; font-size: 10px; color: #A0AEC0; text-align: left; line-height: 1.2;">
+        🔒 <b>RGPD:</b> Datos procesados estrictamente en la memoria RAM volátil del servidor y destruidos al finalizar de forma inmediata.
+        <br/><span style="font-weight: bold; font-size: 8.5px; letter-spacing: 0.5px;">DEVELOPER 1.0</span>
     </div>
     """, 
     unsafe_allow_html=True
