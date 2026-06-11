@@ -8,10 +8,8 @@ import urllib.request
 from docx import Document
 from docx.shared import Pt
 
-# Librería para la interfaz web independiente
 import streamlit as st
 
-# Librerías de ReportLab para la generación del PDF
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -21,23 +19,63 @@ from reportlab.lib.enums import TA_JUSTIFY, TA_CENTER, TA_LEFT, TA_RIGHT
 MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", 
          "agosto", "septiembre", "octubre", "noviembre", "diciembre"]
 
-# Recursos Gráficos en la Nube
+# Recursos Gráficos oficiales en alta resolución
 URL_LOGO_CANARIAS = "https://www3.gobiernodecanarias.org/medusa/mediateca/perfeccionamiento/wp-content/uploads/sites/5/2026/06/logo-consejeria-educacion.png"
 URL_LOGO_APP = "https://www3.gobiernodecanarias.org/medusa/mediateca/perfeccionamiento/wp-content/uploads/sites/5/2026/06/logo-servicio-de-perfeccionamiento-135x135.png"
 
-# Configuración del navegador web
-st.set_page_config(page_title="Servicio de Perfeccionamiento", page_icon="📝", layout="centered")
+# 1. Configuración de página limpia
+st.set_page_config(page_title="Consola de Certificación", page_icon="📝", layout="centered")
 
-# Cabecera Web Institucional
+# CSS Avanzado para forzar la alineación a la izquierda en Moodle/WordPress
+st.markdown("""
+    <style>
+        #MainMenu {visibility: hidden;}
+        footer {visibility: hidden;}
+        header {visibility: hidden;}
+        .block-container {padding-top: 1rem; padding-bottom: 1rem; margin-left: 0 !important; text-align: left !important;}
+        
+        /* Forzar a que el componente de subida de archivos se alinee a la izquierda y no ocupe el 100% si no es necesario */
+        [data-testid="stFileUploader"] {
+            text-align: left !important;
+            max-width: 500px;
+        }
+        
+        /* Alinear botones y mensajes informativos a la izquierda */
+        .stButton > button {
+            display: block !important;
+            margin-right: auto !important;
+            margin-left: 0 !important;
+            max-width: 400px;
+        }
+        div.stAlert {
+            max-width: 500px;
+            text-align: left !important;
+            margin-left: 0 !important;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
+# 2. Banner Institucional con LOGO A LA IZQUIERDA (Usando una tabla HTML limpia para WeasyPrint/Streamlit iframe)
 st.markdown(
     f"""
-    <div style="background-color:#0A3A60; padding:25px; border-radius:12px; display:flex; align-items:center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom:25px;">
-        <img src="{URL_LOGO_APP}" width="80" style="margin-right:20px; border-radius:8px;"/>
-        <div style="color:white; font-family:'Segoe UI', Arial, sans-serif;">
-            <h2 style="margin:0; font-weight:600;">Área de Formación y Perfeccionamiento</h2>
-            <p style="margin:4px 0 0 0; opacity:0.85; font-size:14px;">Plataforma Web · Gestión de Actas y Memorias Oficiales</p>
-        </div>
+    <div style="background-color:#0A3A60; padding:20px; border-radius:4px; margin-bottom:20px; font-family:'Segoe UI', Arial, sans-serif;">
+        <table style="border:none; border-collapse:collapse; width:100%; background:transparent;">
+            <tr>
+                <td style="width:70px; vertical-align:middle; padding:0; border:none;">
+                    <img src="{URL_LOGO_APP}" width="60" style="border-radius:4px; display:block;"/>
+                </td>
+                <td style="vertical-align:middle; padding-left:15px; border:none; text-align:left;">
+                    <h2 style="margin:0; color:white; font-size:21px; font-weight:500; line-height:1.2;">📝 Consola de Certificación Oficial</h2>
+                    <p style="margin:4px 0 0 0; color:#CBD5E0; font-size:13px; opacity:0.9;">
+                        Área de Formación y Perfeccionamiento &middot; Gestión Automatizada de Actas y Memorias
+                    </p>
+                </td>
+            </tr>
+        </table>
     </div>
+    <p style="font-family:'Segoe UI', Arial, sans-serif; color:#4A5568; font-size:13.5px; margin-bottom:25px; text-align:left;">
+        La plantilla oficial de Word ya se encuentra integrada. Seleccione únicamente el archivo Excel del proyecto para iniciar la confección automatizada.
+    </p>
     """, 
     unsafe_allow_html=True
 )
@@ -49,7 +87,6 @@ def limpiar_nombre_archivo(texto):
 def dibujar_encabezado_pdf(canvas, doc, bytes_logo, texto_global):
     canvas.saveState()
     styles = getSampleStyleSheet()
-    
     estilo_perf = ParagraphStyle('PerfDer', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=10, alignment=TA_RIGHT)
     estilo_acta = ParagraphStyle('ActaDer', parent=styles['Normal'], fontName='Helvetica', fontSize=14, alignment=TA_CENTER)
     
@@ -194,31 +231,27 @@ def generar_memoria_oficial(datos_ficha, df_coord, df_part, bytes_plantilla):
     buffer.seek(0)
     return buffer.getvalue()
 
-# --- FLUJO PRINCIPAL DE LA INTERFAZ ---
-st.write("Cargue el archivo **Excel** generado por la plataforma para emitir el paquete oficial de certificación.")
-
-archivo_excel = st.file_uploader("Seleccione el archivo Excel del proyecto", type=["xlsx", "xls"])
+# 3. Cargador de Archivos (Forzado a la izquierda por CSS superior)
+archivo_excel = st.file_uploader("🟢 Seleccionar Excel del Proyecto", type=["xlsx", "xls"], label_visibility="collapsed")
 
 if archivo_excel:
-    st.success("Excel cargado correctamente en memoria.")
+    st.info("📊 Excel cargado correctamente en la caché RAM volátil.")
     
-    if st.button("⚡ Confeccionar documentos", type="primary", use_container_width=True):
-        with st.spinner("Leyendo plantilla interna y compilando expedientes..."):
+    # Botón de Procesar (Alineado a la izquierda)
+    if st.button("⚡ Confeccionar documentos", type="primary"):
+        with st.spinner("Procesando en caliente..."):
             try:
-                # 1. Comprobación y lectura segura de la plantilla local de GitHub
                 if not os.path.exists("plantilla_memoria.docx"):
-                    st.error("Falta el archivo 'plantilla_memoria.docx' en el repositorio de GitHub.")
+                    st.error("Falta el archivo 'plantilla_memoria.docx' en la raíz de GitHub.")
                     st.stop()
                     
                 with open("plantilla_memoria.docx", "rb") as f:
                     plantilla_bytes = f.read()
                 
-                # 2. Descarga del logotipo oficial para el PDF
-                cabeceras = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+                cabeceras = {'User-Agent': 'Mozilla/5.0'}
                 req_logo = urllib.request.Request(URL_LOGO_CANARIAS, headers=cabeceras)
                 bytes_logo_pdf = urllib.request.urlopen(req_logo, timeout=6).read()
                 
-                # 3. Mapeo y extracción de datos desde las pestañas del Excel
                 df_ficha = pd.read_excel(archivo_excel, sheet_name="Ficha del Proyecto", header=None)
                 df_coord = pd.read_excel(archivo_excel, sheet_name="Coordinador")
                 df_part = pd.read_excel(archivo_excel, sheet_name="Participante")
@@ -230,11 +263,9 @@ if archivo_excel:
                     "curso_escolar": df_ficha.iloc[9, 6], "fecha_final": df_ficha.iloc[11, 2]
                 }
                 
-                # 4. Compilación de documentos en memoria
                 pdf_bytes = generar_acta_pdf(datos_ficha, df_coord, df_part, bytes_logo_pdf)
                 docx_bytes = generar_memoria_oficial(datos_ficha, df_coord, df_part, plantilla_bytes)
                 
-                # 5. Empaquetado final en un archivo .ZIP comprimido
                 zip_buffer = BytesIO()
                 exp_limpio = limpiar_nombre_archivo(datos_ficha['exp'])
                 nom_limpio = limpiar_nombre_archivo(datos_ficha['nombre'])
@@ -245,17 +276,31 @@ if archivo_excel:
                 
                 zip_buffer.seek(0)
                 
-                st.subheader("📥 ¡Documentos Listos!")
+                # Bloque final: Mensaje de éxito y Botón de descarga pegados a la izquierda
+                st.success("✨ ¡Paquete oficial generado con éxito!")
                 
                 st.download_button(
-                    label="🎁 Descargar Pack de Certificación Oficial (.ZIP)",
+                    label="📥 Descargar Pack de Certificación Oficial (.ZIP)",
                     data=zip_buffer.getvalue(),
                     file_name=f"Certificacion_Proyecto_{exp_limpio}.zip",
-                    mime="application/zip",
-                    use_container_width=True
+                    mime="application/zip"
                 )
                 
             except Exception as e:
-                st.error(f"Error crítico en el procesado: {str(e)}")
+                st.error(f"Error en procesado: {str(e)}")
 
-st.markdown("<br/><hr/><center style='color:#718096; font-size:12px;'><b>Developer 1.0</b></center>", unsafe_allow_html=True)
+# Sección Informativa de Privacidad (Alineada a la izquierda)
+st.markdown(
+    """
+    <div style="background-color: #F7FAFC; border: 1px dashed #CBD5E0; padding: 12px; border-radius: 4px; margin-top: 30px; font-family: sans-serif; max-width: 500px; text-align: left;">
+        <span style="color: #4A5568; font-weight: bold; font-size: 11.5px;">🔒 Protección de Datos (RGPD):</span>
+        <p style="margin: 4px 0 0 0; color: #718096; font-size: 11px; line-height: 1.4;">
+            Los datos personales se procesan exclusivamente en memoria volátil (RAM) y se destruyen al descargar el paquete o cerrar la ventana. Ninguna información se registra de forma permanente.
+        </p>
+    </div>
+    <div style="margin-top: 15px; font-size: 9px; color: #A0AEC0; font-weight: bold; text-align: left; padding-left: 5px; letter-spacing: 1px;">
+        DEVELOPER 1.0
+    </div>
+    """, 
+    unsafe_allow_html=True
+)
