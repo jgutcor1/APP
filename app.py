@@ -245,7 +245,6 @@ if archivo_excel:
                 
                 zip_buffer.seek(0)
                 
-                st.balloons()
                 st.subheader("📥 ¡Documentos Listos!")
                 
                 st.download_button(
