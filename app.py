@@ -60,17 +60,17 @@ st.markdown(
                 </td>
                 <td style="vertical-align:middle; padding-left:10px; border:none; text-align:left;">
                     <h2 style="margin:0; color:#0A3A60; font-size:18px; font-weight:600; line-height:1.2; display:inline-block; vertical-align:middle;">
-                        Consola de Certificación Oficial
+                        Área de Formación y Perfeccionamiento
                     </h2>
                     <span style="margin-left:6px; color:#718096; font-size:11.5px; display:inline-block; vertical-align:middle;">
-                        &middot; Área de Formación y Perfeccionamiento
+                        &middot; Developer 1.0
                     </span>
                 </td>
             </tr>
         </table>
     </div>
     <p style='font-family:sans-serif; font-size:11.5px; color:#4A5568; margin: 0 0 10px 0; text-align:left;'>
-        La plantilla Word oficial está integrada. Suba el archivo Excel para confeccionar el paquete.
+        Suba el archivo Excel para confeccionar el paquete.
     </p>
     """, 
     unsafe_allow_html=True
