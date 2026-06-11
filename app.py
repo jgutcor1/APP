@@ -112,7 +112,7 @@ def generar_acta_pdf(datos_ficha, df_coord, df_part, bytes_logo):
     story = []
     styles = getSampleStyleSheet()
     
-    estilo_cab = ParagraphStyle('TCab', parent=styles['Normal'], fontSize=8, fontName='Helvetica-Bold', alignment=TA_CENTER)
+    estilo_cab = ParagraphStyle('TCab', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=8, alignment=TA_CENTER)
     estilo_cen = ParagraphStyle('TCen', parent=styles['Normal'], fontSize=8.5, alignment=TA_CENTER)
     estilo_izq = ParagraphStyle('TIzq', parent=styles['Normal'], fontSize=8.5, alignment=TA_LEFT)
     
@@ -170,4 +170,93 @@ def generar_memoria_oficial(datos_ficha, df_coord, df_part, bytes_plantilla):
             
     if tabla_certificacion:
         cont = 1
-        for
+        for df in [df_coord, df_part]:
+            for _, fila in df.iterrows():
+                if str(fila.iloc[5]).strip().upper() == "NO":
+                    nueva_fila = tabla_certificacion.add_row()
+                    nueva_fila.cells[0].text = str(cont)
+                    nueva_fila.cells[1].text = f"{fila.iloc[1]}, {fila.iloc[2]}".upper()
+                    nueva_fila.cells[2].text = str(fila.iloc[0]).upper()
+                    nueva_fila.cells[3].text = ", ".join([str(fila.iloc[6]).strip() if pd.notna(fila.iloc[6]) else "", str(fila.iloc[7]).strip() if pd.notna(fila.iloc[7]) else ""]).strip(", ").upper()
+                    
+                    for cell in nueva_fila.cells:
+                        for p in cell.paragraphs:
+                            for run in p.runs: run.font.size = Pt(8.5)
+                    cont += 1
+                    
+        if cont == 1:
+            nueva_fila = tabla_certificacion.add_row()
+            nueva_fila.cells[1].text = "No constan personas sin certificar"
+            for p in nueva_fila.cells[1].paragraphs:
+                for run in p.runs: run.font.size = Pt(8.5)
+                
+    doc.save(buffer)
+    buffer.seek(0)
+    return buffer.getvalue()
+
+# --- FLUJO PRINCIPAL DE LA INTERFAZ ---
+st.write("Cargue el archivo **Excel** generado por la plataforma para emitir el paquete oficial de certificación.")
+
+archivo_excel = st.file_uploader("Seleccione el archivo Excel del proyecto", type=["xlsx", "xls"])
+
+if archivo_excel:
+    st.success("Excel cargado correctamente en memoria.")
+    
+    if st.button("⚡ Confeccionar documentos", type="primary", use_container_width=True):
+        with st.spinner("Leyendo plantilla interna y compilando expedientes..."):
+            try:
+                # 1. Comprobación y lectura segura de la plantilla local de GitHub
+                if not os.path.exists("plantilla_memoria.docx"):
+                    st.error("Falta el archivo 'plantilla_memoria.docx' en el repositorio de GitHub.")
+                    st.stop()
+                    
+                with open("plantilla_memoria.docx", "rb") as f:
+                    plantilla_bytes = f.read()
+                
+                # 2. Descarga del logotipo oficial para el PDF
+                cabeceras = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+                req_logo = urllib.request.Request(URL_LOGO_CANARIAS, headers=cabeceras)
+                bytes_logo_pdf = urllib.request.urlopen(req_logo, timeout=6).read()
+                
+                # 3. Mapeo y extracción de datos desde las pestañas del Excel
+                df_ficha = pd.read_excel(archivo_excel, sheet_name="Ficha del Proyecto", header=None)
+                df_coord = pd.read_excel(archivo_excel, sheet_name="Coordinador")
+                df_part = pd.read_excel(archivo_excel, sheet_name="Participante")
+                
+                datos_ficha = {
+                    "nombre": df_ficha.iloc[2, 2], "exp": str(df_ficha.iloc[4, 2]),
+                    "resol": str(df_ficha.iloc[4, 6]), "fecha_resol": df_ficha.iloc[5, 6],
+                    "horas_coord": df_ficha.iloc[7, 2], "horas_partic": df_ficha.iloc[8, 2],
+                    "curso_escolar": df_ficha.iloc[9, 6], "fecha_final": df_ficha.iloc[11, 2]
+                }
+                
+                # 4. Compilación de documentos en memoria
+                pdf_bytes = generar_acta_pdf(datos_ficha, df_coord, df_part, bytes_logo_pdf)
+                docx_bytes = generar_memoria_oficial(datos_ficha, df_coord, df_part, plantilla_bytes)
+                
+                # 5. Empaquetado final en un archivo .ZIP comprimido
+                zip_buffer = BytesIO()
+                exp_limpio = limpiar_nombre_archivo(datos_ficha['exp'])
+                nom_limpio = limpiar_nombre_archivo(datos_ficha['nombre'])
+                
+                with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+                    zip_file.writestr(f"Perf06_{exp_limpio}_{nom_limpio}.pdf", pdf_bytes)
+                    zip_file.writestr(f"Memoria_{exp_limpio}.docx", docx_bytes)
+                
+                zip_buffer.seek(0)
+                
+                st.balloons()
+                st.subheader("📥 ¡Documentos Listos!")
+                
+                st.download_button(
+                    label="🎁 Descargar Pack de Certificación Oficial (.ZIP)",
+                    data=zip_buffer.getvalue(),
+                    file_name=f"Certificacion_Proyecto_{exp_limpio}.zip",
+                    mime="application/zip",
+                    use_container_width=True
+                )
+                
+            except Exception as e:
+                st.error(f"Error crítico en el procesado: {str(e)}")
+
+st.markdown("<br/><hr/><center style='color:#718096; font-size:12px;'><b>Developer 1.0</b></center>", unsafe_allow_html=True)
