@@ -62,9 +62,7 @@ st.markdown(
                     <h2 style="margin:0; color:#0A3A60; font-size:18px; font-weight:600; line-height:1.2; display:inline-block; vertical-align:middle;">
                         Área de Formación y Perfeccionamiento
                     </h2>
-                    <span style="margin-left:6px; color:#718096; font-size:11.5px; display:inline-block; vertical-align:middle;">
-                        &middot; Developer 1.0
-                    </span>
+                   
                 </td>
             </tr>
         </table>
